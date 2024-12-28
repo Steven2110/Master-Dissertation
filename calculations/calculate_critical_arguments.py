@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from .functions import calculate_critical_arguments, calculate_sidereal_time
+from .functions import calculate_critical_arguments, calculate_sidereal_time, calculate_resonance_relations
 
 def convert_to_degree(radians):
     degrees = np.rad2deg(radians)  # Convert radians to degrees
@@ -11,8 +11,8 @@ def convert_to_degree(radians):
 
 def process_critical_arguments(subdirectory, base_path = 'data'):
     # Construct the input and output file paths
-    input_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_{subdirectory}.csv")
-    output_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_with_Phi_{subdirectory}.csv")
+    input_file_path = os.path.join(base_path, subdirectory, f"calculated_differential_orbital_elements_{subdirectory}.csv")
+    output_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_with_Resonance_{subdirectory}.csv")
 
     # Load the dataset
     df = pd.read_csv(input_file_path)
@@ -45,3 +45,34 @@ def process_critical_arguments(subdirectory, base_path = 'data'):
 
     print(f"The updated file with critical arguments is saved at: {output_file_path}")
 
+def process_resonance_relations(subdirectory, base_path='data'):
+    # Construct the input and output file paths
+    input_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_with_Resonance_{subdirectory}.csv")
+    output_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_with_All_Resonance_{subdirectory}.csv")
+
+    # Load the dataset
+    df = pd.read_csv(input_file_path)
+
+    # Use the 'interval' column to compute the final Julian date and sidereal time
+    final_jd = df['t0'] + df['interval'] / 86400
+    df['theta'] = calculate_sidereal_time(final_jd)
+
+    # Calculate the critical arguments and append the results in radians
+    critical_arguments = df.apply(
+        lambda row: calculate_resonance_relations(
+            1,
+            2,
+            row['M_dot'],
+            row['Omega_dot'],
+            row['omega_dot']
+        ),
+        axis=1
+    )
+
+    # Add the critical arguments in radians as new columns
+    df[['Phi_dot_1', 'Phi_dot_2', 'Phi_dot_3', 'Phi_dot_4', 'Phi_dot_5']] = pd.DataFrame(critical_arguments.tolist(), index=df.index)
+
+    # Save the updated dataframe to a new CSV file
+    df.to_csv(output_file_path, index=False)
+
+    print(f"The updated file with critical arguments is saved at: {output_file_path}")

@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from astropy.time import Time
-from .functions import orbital_params
+from .functions import orbital_params, differential_orbital_params
 
 def process_orbital_elements(subdirectory, base_path='data'):
     # Construct input and output file paths
@@ -90,5 +90,41 @@ def process_orbital_elements(subdirectory, base_path='data'):
 
     # Export the new DataFrame to a CSV file
     result_df.to_csv(output_file_path, index=False, float_format='%.20f')
+
+    print(f"Data with calculated orbital elements has been saved to {output_file_path}.")
+
+def process_differential_orbital_elements(subdirectory, base_path='data'):
+    # Construct input and output file paths
+    input_file_path = os.path.join(base_path, subdirectory, f"calculated_orbital_elements_{subdirectory}.csv")
+    output_file_path = os.path.join(base_path, subdirectory, f"calculated_differential_orbital_elements_{subdirectory}.csv")
+
+    # Load the data from the existing CSV file
+    data = pd.read_csv(input_file_path)
+
+    M_dot_values = []
+    Omega_dot_values = []
+    omega_dot_values = []
+    
+    for index, row in data.iterrows():
+        # Extract required parameters
+        semi_major_axis = row['semi-major axis']  # Replace with actual column name
+        inclination = row['inclination']         # Replace with actual column name
+        eccentricity = row['eccentricity']       # Replace with actual column name
+
+        # Calculate differential orbital parameters
+        Omega_dot, omega_dot, M_dot = differential_orbital_params(semi_major_axis, inclination, eccentricity)
+
+        # Append the results to the respective lists
+        M_dot_values.append(M_dot)
+        Omega_dot_values.append(Omega_dot)
+        omega_dot_values.append(omega_dot)
+
+    # Add the calculated values to the DataFrame
+    data['M_dot'] = M_dot_values
+    data['Omega_dot'] = Omega_dot_values
+    data['omega_dot'] = omega_dot_values
+
+    # Save the new DataFrame to a CSV file
+    data.to_csv(output_file_path, index=False, float_format='%.20f')
 
     print(f"Data with calculated orbital elements has been saved to {output_file_path}.")

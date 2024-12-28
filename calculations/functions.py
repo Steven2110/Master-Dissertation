@@ -2,7 +2,11 @@ import numpy as np
 
 # Gravitational parameter for Earth in km^3/s^2
 GM = 3.986004418E+5
+J2 = 1.0826359E-3
+R_0 = 6363.6726 # km
+i_third_deg = 23.45 # degree
 
+# MARK: - Orbital Elements Calculation
 def calculate_angular_momentum(r_vector, v_vector):
     return np.cross(r_vector, v_vector)
 
@@ -131,30 +135,78 @@ def orbital_params(initial_coordinates, initial_velocity):
     
     return semi_major_axis, eccentricity, inclination, Omega_rads, Omega_degs, omega_rads, omega_degs, mean_anomaly_rads, mean_anomaly_degs
 
-def critical_argument_1(u, m, M, Omega, omega, theta):
-    return u * (M + omega + Omega) - m * theta
+# MARK: - Differential Orbital Elements Calculation
+def mean_motion(a):
+    return np.sqrt(GM / a**3)
 
-def critical_argument_2(u, m, M, Omega, omega, theta):
-    return u * (M + omega) + m * (Omega - theta)
+def calculate_differential_longitude_of_ascending_node_by_sun(a, i, e):
+    ms_by_me = 332946.048166
+    a_sun = 149597868 # in km
+    i_third = np.radians(i_third_deg)
+    n = mean_motion(a)
 
-def critical_argument_3(u, m, M, Omega, omega, theta):
-    return u * M + m * (omega + Omega - theta)
+    return -(3 / 16) * n * ms_by_me * (a / a_sun)**3 * ((2 + 3 * e**2) / np.sqrt(1 - e**2)) * (2 - 3  * np.sin(i_third)**2) * np.cos(i)
 
-def critical_argument_4(u, m, M, Omega, omega, theta):
-    return u * (M - Omega + omega) - m * theta
+def calculate_differential_longitude_of_ascending_node_by_moon(a, i, e):
+    mm_by_me = 1 / 81.3005690699
+    a_moon = 384748 # in km
+    i_third = np.radians(i_third_deg)
+    n = mean_motion(a)
 
-def critical_argument_5(u, m, M, Omega, omega, theta):
-    return u * M + m * (-omega + 2 * Omega - theta)
+    return -(3 / 16) * n * mm_by_me * (a / a_moon)**3 * ((2 + 3 * e**2) / np.sqrt(1 - e**2)) * (2 - 3  * np.sin(i_third)**2) * np.cos(i)
 
-def calculate_critical_arguments(u, m, M, Omega, omega, theta):
-    phi1 = critical_argument_1(u, m, M, Omega, omega, theta)
-    phi2 = critical_argument_2(u, m, M, Omega, omega, theta)
-    phi3 = critical_argument_3(u, m, M, Omega, omega, theta)
-    phi4 = critical_argument_4(u, m, M, Omega, omega, theta)
-    phi5 = critical_argument_5(u, m, M, Omega, omega, theta)
-    
-    return phi1, phi2, phi3, phi4, phi5
+def calculate_differential_longitude_of_ascending_node_by_j2(a, e, i):
+    n = mean_motion(a)
+    return -(3 / 2) * J2 * n * (R_0 / a)**2 * np.cos(i) * (1 - e**2)**-2
 
+def calculate_differential_longitude_of_ascending_node(a, i, e):
+    Omega_sun = calculate_differential_longitude_of_ascending_node_by_sun(a, i, e)
+    Omega_moon = calculate_differential_longitude_of_ascending_node_by_moon(a, i, e)
+    Omega_J2 = calculate_differential_longitude_of_ascending_node_by_j2(a, e, i)
+
+    return Omega_J2 + Omega_moon + Omega_sun
+
+def calculate_differential_argument_of_periapsis_by_sun(a, i, e):
+    ms_by_me = 332946.048166 # Mass of sun by mass of earth
+    a_sun = 149597868 # in km
+    i_third = np.radians(i_third_deg)
+    n = mean_motion(a)
+
+    return (3 / 16) * n * ms_by_me * (a / a_sun)**3 * ((4 - 5 * np.sin(i)**2 + e**2) / np.sqrt(1 - e**2)) * (2 - 3 * np.sin(i_third)**2)
+
+def calculate_differential_argument_of_periapsis_by_moon(a, i, e):
+    mm_by_me = 1 / 81.3005690699 # Mass of moon by mass of earth
+    a_moon = 384748 # in km
+    i_third = np.radians(i_third_deg)
+    n = mean_motion(a)
+
+    return (3 / 16) * n * mm_by_me * (a / a_moon)**3 * ((4 - 5 * np.sin(i)**2 + e**2) / np.sqrt(1 - e**2)) * (2 - 3 * np.sin(i_third)**2)
+
+def calculate_differential_argument_of_periapsis_by_j2(a, i, e):
+    n = mean_motion(a)
+
+    return (3 / 4) * J2 * n * (R_0 / a)**2 * ((5 * np.cos(i)**2 - 1) / (1 - e**2)**2)
+
+def calculate_differential_argument_of_periapsis(a, i, e):
+    omega_sun = calculate_differential_argument_of_periapsis_by_sun(a, i, e)
+    omega_moon = calculate_differential_argument_of_periapsis_by_moon(a, i, e)
+    omega_J2 = calculate_differential_argument_of_periapsis_by_j2(a, e, i)
+
+    return omega_J2 + omega_moon + omega_sun
+
+def calculate_differential_mean_anomaly(a):
+    n = mean_motion(a)
+
+    return n
+
+def differential_orbital_params(semi_major_axis, inclination, eccentricity):
+    Omega_dot = calculate_differential_longitude_of_ascending_node(semi_major_axis, inclination, eccentricity)
+    omega_dot = calculate_differential_argument_of_periapsis(semi_major_axis, inclination, eccentricity)
+    M_dot = calculate_differential_mean_anomaly(semi_major_axis)
+
+    return Omega_dot, omega_dot, M_dot
+
+# MARK: - Sidereal Time Calculation
 # h in radians
 def calculate_sidereal_time(jd):
     jd2000 = 2451545 # Julian date for J2000.0
@@ -179,3 +231,57 @@ def calculate_sidereal_time(jd):
     s_rad = s / 86400 * 2 * np.pi
 
     return s_rad
+
+# MARK: - Critical Arguments Calculation
+def critical_argument_1(u, m, M, Omega, omega, theta):
+    return u * (M + omega + Omega) - m * theta
+
+def critical_argument_2(u, m, M, Omega, omega, theta):
+    return u * (M + omega) + m * (Omega - theta)
+
+def critical_argument_3(u, m, M, Omega, omega, theta):
+    return u * M + m * (omega + Omega - theta)
+
+def critical_argument_4(u, m, M, Omega, omega, theta):
+    return u * (M - Omega + omega) - m * theta
+
+def critical_argument_5(u, m, M, Omega, omega, theta):
+    return u * M + m * (-omega + 2 * Omega - theta)
+
+def calculate_critical_arguments(u, m, M, Omega, omega, theta):
+    phi1 = critical_argument_1(u, m, M, Omega, omega, theta)
+    phi2 = critical_argument_2(u, m, M, Omega, omega, theta)
+    phi3 = critical_argument_3(u, m, M, Omega, omega, theta)
+    phi4 = critical_argument_4(u, m, M, Omega, omega, theta)
+    phi5 = critical_argument_5(u, m, M, Omega, omega, theta)
+    
+    return phi1, phi2, phi3, phi4, phi5
+
+# MARK: - Resonance Relations Calculation
+def differential_critical_argument_1(u, m, M_dot, Omega_dot, omega_dot, theta_dot):
+    return u * (M_dot + omega_dot + Omega_dot) - m * theta_dot
+
+def differential_critical_argument_2(u, m, M_dot, Omega_dot, omega_dot, theta_dot):
+    return u * (M_dot + omega_dot) + m * (Omega_dot - theta_dot)
+
+def differential_critical_argument_3(u, m, M_dot, Omega_dot, omega_dot, theta_dot):
+    return u * M_dot + m * (omega_dot + Omega_dot - theta_dot)
+
+def differential_critical_argument_4(u, m, M_dot, Omega_dot, omega_dot, theta_dot):
+    # return u * (M_dot - Omega_dot + omega_dot) - m * theta_dot
+    phi1_dot = differential_critical_argument_1(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    return phi1_dot - m * Omega_dot
+
+def differential_critical_argument_5(u, m, M_dot, Omega_dot, omega_dot, theta_dot):
+    # return u * M_dot + m * (-omega_dot + 2 * Omega_dot - theta_dot)
+    phi3_dot = differential_critical_argument_3(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    return phi3_dot + m * Omega_dot - 2 * m * omega_dot
+
+def calculate_resonance_relations(u, m, M_dot, Omega_dot, omega_dot, theta_dot=7.292115E-5):
+    phi1 = differential_critical_argument_1(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    phi2 = differential_critical_argument_2(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    phi3 = differential_critical_argument_3(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    phi4 = differential_critical_argument_4(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    phi5 = differential_critical_argument_5(u, m, M_dot, Omega_dot, omega_dot, theta_dot)
+    
+    return phi1, phi2, phi3, phi4, phi5

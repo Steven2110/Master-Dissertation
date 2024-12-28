@@ -1,6 +1,6 @@
 from data.data_parser import parse_data
-from calculations.calculation_orbital_params import process_orbital_elements
-from calculations.calculate_critical_arguments import process_critical_arguments
+from calculations.calculation_orbital_params import process_orbital_elements, process_differential_orbital_elements
+from calculations.calculate_critical_arguments import process_critical_arguments, process_resonance_relations
 from grapher import process_graph
 
 def main():
@@ -18,9 +18,19 @@ def main():
         process_orbital_elements(subdir)
         print(f"Calculation for {subdir} finished!\n")
 
+        # Calculate differential orbital parameters
+        print(f"Calculating differential orbital parameters for {subdir}!\n")
+        process_differential_orbital_elements(subdir)
+        print(f"Calculation for {subdir} finished!\n")
+
         # Calculate critical arguments
         print(f"Calculating critical arguments for {subdir}!\n")
         process_critical_arguments(subdir)
+        print(f"Calculation for {subdir} finished!\n")
+
+        # Calculate resonance relations
+        print(f"Calculating resonance relations for {subdir}!\n")
+        process_resonance_relations(subdir)
         print(f"Calculation for {subdir} finished!\n")
 
         # Draw and save graph
