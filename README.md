@@ -30,9 +30,9 @@ Group number: 052472
 [Т. В. Бордовицына](https://persona.tsu.ru/Home/UserProfile/1123)
 
 # Task:
-1)	Освоить теоретический материал по орбитальным резонансам, резонансным структурам, апсидально-нодальным резонансам
-2)	Изучить методы идентификации и анализа резонансов
-3)	Предобработать данные об орбитах (околоземных объектов) ОЗО
-4)	Создать признаки
-5)	Разработать модели нейронной сети (для классификации и прогнозирования временных рядов)
-6)	Оценивать модели и улучшить модели
+1)	Освоить теоретический материал по орбитальным резонансам, резонансным структурам, апсидально-нодальным резонансам (Understand theoretical material on orbital resonances, resonant structures, apsidal-nodal resonances)
+2)	Изучить методы идентификации и анализа резонансов (Study methods of resonance identification and analysis)
+3)	Предобработать данные об орбитах (околоземных объектов) ОЗО (Pre-process data on orbits (near-Earth objects) of NEOs)
+4)	Создать признаки (Create features)
+5)	Разработать модели нейронной сети (для классификации и прогнозирования временных рядов) (Develop neural network models (for classification and forecasting of time series))
+6)	Оценивать модели и улучшить модели (Evaluate models and improve models)
